@@ -242,23 +242,28 @@ int main(int argc, char **argv)
 	atexit(object_dump);
 #endif
 
-	// Clear LD_PRELOAD so that shells and processes launched by Enigma2 can pass on file handles and pipes
-	unsetenv("LD_PRELOAD");
-
 	gst_init(&argc, &argv);
+	
+	for (int i = 0; i < argc; i++)
+	{
+		if (!(strcmp(argv[i], "--debug-no-color")) or !(strcmp(argv[i], "--nc")))
+		{
+			logOutputColors = 0;
+		}
+
+		if (!(strcmp(argv[i], "--verbose")))
+		{
+			verbose = true;
+		}
+	}
+
+	m_erroroutput = new eErrorOutput();
+	m_erroroutput->run();	
 
 	// set pythonpath if unset
 	setenv("PYTHONPATH", eEnv::resolve("${libdir}/enigma2/python").c_str(), 0);
-	printf("[Enigma2] PYTHONPATH: %s\n", getenv("PYTHONPATH"));
-	printf("[Enigma2] DVB_API_VERSION %d DVB_API_VERSION_MINOR %d\n", DVB_API_VERSION, DVB_API_VERSION_MINOR);
-
-	// get enigma2 debug level settings
-	debugLvl = getenv("ENIGMA_DEBUG_LVL") ? atoi(getenv("ENIGMA_DEBUG_LVL")) : 4;
-	if (debugLvl < 0)
-		debugLvl = 0;
-	printf("ENIGMA_DEBUG_LVL=%d\n", debugLvl);
-	if (getenv("ENIGMA_DEBUG_TIME"))
-		setDebugTime(atoi(getenv("ENIGMA_DEBUG_TIME")) != 0);
+	printf("PYTHONPATH: %s\n", getenv("PYTHONPATH"));
+	printf("DVB_API_VERSION %d DVB_API_VERSION_MINOR %d\n", DVB_API_VERSION, DVB_API_VERSION_MINOR);
 
 	ePython python;
 	eMain main;
