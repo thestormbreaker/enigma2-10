@@ -63,6 +63,27 @@ void eInit::setRunlevel(int nrl)
 	eDebug("[eInit] reached rl %d", rl);
 }
 
+void eInit::pauseInit()
+{
+	paused = true;
+}
+
+void eInit::resumeInit()
+{
+	int runlevel = -1;
+	while (runlevel < rl)
+	{
+		runlevel++;
+		for (std::list<std::pair<int,eAutoInit*> >::iterator i(cl->begin()); i != cl->end(); ++i)
+		{
+			if ((*i).first == runlevel)
+			{
+				(*i).second->initNow();
+			}
+		}
+	}
+	paused = false;
+}
 eAutoInit::~eAutoInit()
 {
 }
