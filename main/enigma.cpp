@@ -17,6 +17,7 @@
 #include <lib/base/eerror.h>
 #include <lib/base/init.h>
 #include <lib/base/init_num.h>
+#include <lib/base/nconfig.h>
 #include <lib/gdi/gmaindc.h>
 #include <lib/gdi/glcddc.h>
 #include <lib/gdi/grc.h>
@@ -38,6 +39,11 @@
 #include "version_info.h"
 
 #include <gst/gst.h>
+
+#include <lib/base/eerroroutput.h>
+ePtr<eErrorOutput> m_erroroutput;
+
+bool verbose = false;
 
 #ifdef OBJECT_DEBUG
 int object_total_remaining;
@@ -63,11 +69,34 @@ void keyEvent(const eRCKey &key)
 {
 	static eRCKey last(0, 0, 0);
 	static int num_repeat;
+	static int long_press_emulation_pushed = false;
+	static time_t long_press_emulation_start = 0;
 
 	ePtr<eActionMap> ptr;
 	eActionMap::getInstance(ptr);
+	/*eDebug("key.code : %02x \n", key.code);*/
 
-	if ((key.code == last.code) && (key.producer == last.producer) && key.flags & eRCKey::flagRepeat)
+	int flags = key.flags;
+	int long_press_emulation_key = eConfigManager::getConfigIntValue("config.usage.long_press_emulation_key");
+	if ((long_press_emulation_key > 0) && (key.code == long_press_emulation_key))
+	{
+		long_press_emulation_pushed = true;
+		long_press_emulation_start = time(NULL);
+		last = key;
+		return;
+	}
+
+	if (long_press_emulation_pushed && (time(NULL) - long_press_emulation_start < 10) && (key.producer == last.producer))
+	{
+		// emit make-event first
+		ptr->keyPressed(key.producer->getIdentifier(), key.code, key.flags);
+		// then setup condition for long-event
+		num_repeat = 3;
+		last = key;
+		flags = eRCKey::flagRepeat;
+	}
+
+	if ((key.code == last.code) && (key.producer == last.producer) && flags & eRCKey::flagRepeat)
 		num_repeat++;
 	else
 	{
@@ -87,7 +116,9 @@ void keyEvent(const eRCKey &key)
 		ptr->keyPressed(key.producer->getIdentifier(), 510 /* faked KEY_ASCII */, 0);
 	}
 	else
-		ptr->keyPressed(key.producer->getIdentifier(), key.code, key.flags);
+		ptr->keyPressed(key.producer->getIdentifier(), key.code, flags);
+
+	long_press_emulation_pushed = false;
 }
 
 /************************************************/
@@ -98,9 +129,6 @@ void keyEvent(const eRCKey &key)
 #include <lib/dvb/db.h>
 #include <lib/dvb/dvbtime.h>
 #include <lib/dvb/epgcache.h>
-
-/* Defined in eerror.cpp */
-void setDebugTime(bool enable);
 
 class eMain: public eApplication, public sigc::trackable
 {
@@ -193,24 +221,14 @@ void quitMainloop(int exitCode)
 		if (fd >= 0)
 		{
 			if (ioctl(fd, 10 /*FP_CLEAR_WAKEUP_TIMER*/) < 0)
-				eDebug("[quitMainloop] FP_CLEAR_WAKEUP_TIMER failed: %m");
+				eDebug("[quitMainloop] FP_CLEAR_WAKEUP_TIMER failed (%m)");
 			close(fd);
 		}
 		else
-			eDebug("[quitMainloop] open /dev/dbox/fp0 for wakeup timer clear failed: %m");
+			eDebug("[quitMainloop] open /dev/dbox/fp0 for wakeup timer clear failed!(%m)");
 	}
 	exit_code = exitCode;
 	eApp->quit(0);
-}
-
-void pauseInit()
-{
-	eInit::pauseInit();
-}
-
-void resumeInit()
-{
-	eInit::resumeInit();
 }
 
 static void sigterm_handler(int num)
@@ -233,7 +251,6 @@ void catchTermSignal()
 
 int main(int argc, char **argv)
 {
-
 #ifdef MEMLEAK_CHECK
 	atexit(DumpUnfreed);
 #endif
@@ -243,7 +260,23 @@ int main(int argc, char **argv)
 #endif
 
 	gst_init(&argc, &argv);
-	
+
+	for (int i = 0; i < argc; i++)
+	{
+		if (!(strcmp(argv[i], "--debug-no-color")) or !(strcmp(argv[i], "--nc")))
+		{
+			logOutputColors = 0;
+		}
+
+		if (!(strcmp(argv[i], "--verbose")))
+		{
+			verbose = true;
+		}
+	}
+
+	m_erroroutput = new eErrorOutput();
+	m_erroroutput->run();
+
 	// set pythonpath if unset
 	setenv("PYTHONPATH", eEnv::resolve("${libdir}/enigma2/python").c_str(), 0);
 	printf("PYTHONPATH: %s\n", getenv("PYTHONPATH"));
@@ -252,6 +285,7 @@ int main(int argc, char **argv)
 	ePython python;
 	eMain main;
 
+#if 1
 	ePtr<gMainDC> my_dc;
 	gMainDC::getInstance(my_dc);
 
@@ -277,7 +311,7 @@ int main(int argc, char **argv)
 
 /*	if (double_buffer)
 	{
-		eDebug("[MAIN] - double buffering found, enable buffered graphics mode.");
+		eDebug("[MAIN]  - double buffering found, enable buffered graphics mode.");
 		dsk.setCompositionMode(eWidgetDesktop::cmBuffered);
 	} */
 
@@ -288,6 +322,7 @@ int main(int argc, char **argv)
 	dsk_lcd.setDC(my_lcd_dc);
 
 	dsk.setBackgroundColor(gRGB(0,0,0,0xFF));
+#endif
 
 		/* redrawing is done in an idle-timer, so we have to set the context */
 	dsk.setRedrawTask(main);
@@ -298,38 +333,48 @@ int main(int argc, char **argv)
 	eDebug("[MAIN] Loading spinners...");
 
 	{
-		int i;
+		int i = 0;
+		bool def = false;
+		std::string path = "${sysconfdir}/enigma2/spinner";
 #define MAX_SPINNER 64
 		ePtr<gPixmap> wait[MAX_SPINNER];
-		for (i=0; i<MAX_SPINNER; ++i)
+		while(i < MAX_SPINNER)
 		{
 			char filename[64];
 			std::string rfilename;
-			snprintf(filename, sizeof(filename), "${datadir}/enigma2/%s/wait%d.png", active_skin.c_str(), i + 1);
+			snprintf(filename, sizeof(filename), "%s/wait%d.png", path.c_str(), i + 1);
 			rfilename = eEnv::resolve(filename);
-
-			if (::access(rfilename.c_str(), R_OK) < 0)
-				break;
-
 			loadPNG(wait[i], rfilename.c_str());
+
 			if (!wait[i])
 			{
-				eDebug("[MAIN] failed to load %s: %m", rfilename.c_str());
+				if (!i)
+				{
+					if (!def)
+					{
+						def = true;
+						snprintf(filename, sizeof(filename), "${datadir}/enigma2/%s", active_skin.c_str());
+						path = filename;
+						continue;
+					}
+				}
+				else
+					eDebug("[MAIN] found %d spinner!", i);
 				break;
 			}
+			i++;
 		}
-		eDebug("[MAIN] found %d spinner!", i);
 		if (i)
-			my_dc->setSpinner(eRect(ePoint(25, 25), wait[0]->size()), wait, i);
+			my_dc->setSpinner(eRect(ePoint(100, 100), wait[0]->size()), wait, i);
 		else
-			my_dc->setSpinner(eRect(25, 25, 0, 0), wait, 1);
+			my_dc->setSpinner(eRect(100, 100, 0, 0), wait, 1);
 	}
 
 	gRC::getInstance()->setSpinnerDC(my_dc);
 
 	eRCInput::getInstance()->keyEvent.connect(sigc::ptr_fun(&keyEvent));
 
-	printf("[MAIN] executing main\n");
+	eDebug("[MAIN] executing main\n");
 
 	bsodCatchSignals();
 	catchTermSignal();
@@ -339,7 +384,7 @@ int main(int argc, char **argv)
 	/* start at full size */
 	eVideoWidget::setFullsize(true);
 
-	// python.execute("mytest", "__main__");
+	//	python.execute("mytest", "__main__");
 	python.execFile(eEnv::resolve("${libdir}/enigma2/python/mytest.py").c_str());
 
 	/* restore both decoders to full size */
@@ -360,7 +405,7 @@ int main(int argc, char **argv)
 		p.clear();
 		p.flush();
 	}
-
+	m_erroroutput = NULL;
 	return exit_code;
 }
 
