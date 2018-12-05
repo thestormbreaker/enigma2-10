@@ -18,6 +18,8 @@ public:
 	static void setRunlevel(int rlev);
 	static void add(int trl, eAutoInit *c);
 	static void remove(int trl, eAutoInit *c);
+	static void pauseInit();
+	static void resumeInit();	
 };
 
 class eAutoInit
