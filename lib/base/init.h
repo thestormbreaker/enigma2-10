@@ -12,6 +12,7 @@ class eInit
 	static std::list<std::pair<int,eAutoInit*> > *cl;
 	friend class eAutoInit;
 	static int rl;
+	static bool paused;
 public:
 	eInit();
 	~eInit();
