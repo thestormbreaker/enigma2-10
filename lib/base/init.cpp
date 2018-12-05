@@ -3,6 +3,7 @@
 #include <lib/base/eerror.h>
 
 int eInit::rl=-1;
+bool eInit::paused = false;
 std::list<std::pair<int,eAutoInit*> > *eInit::cl;
 
 void eInit::add(int trl, eAutoInit *c)
