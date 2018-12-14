@@ -12,7 +12,12 @@ void eInit::add(int trl, eAutoInit *c)
 		cl=new std::list<std::pair<int,eAutoInit*> >;
 	cl->push_back(std::pair<int,eAutoInit*>(trl, c));
 	if (rl>=trl)
-		c->initNow();
+	{
+		if (!paused)
+		{
+			c->initNow();
+		}
+	}
 }
 
 void eInit::remove(int trl, eAutoInit *c)
@@ -45,7 +50,6 @@ void eInit::setRunlevel(int nrl)
 		{
 			if ((*i).first == rl)
 			{
-				eDebug("[eInit] + (%d) %s", rl, (*i).second->getDescription());
 				(*i).second->initNow();
 			}
 		}
@@ -85,6 +89,7 @@ void eInit::resumeInit()
 	}
 	paused = false;
 }
+
 eAutoInit::~eAutoInit()
 {
 }

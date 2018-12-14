@@ -12,25 +12,32 @@
 typedef FTC_ImageCache FTC_Image_Cache;
 typedef FTC_ImageTypeRec FTC_Image_Desc;
 typedef FTC_SBitCache FTC_SBit_Cache;
+
+#ifdef HAVE_FREETYPE2
+typedef FT_UInt GlyphIndex;
+#else
+typedef FT_ULong GlyphIndex;
+#endif
+
+#include <string>
 #include <vector>
+#include <list>
+#include <set>
 
 #include <lib/gdi/fb.h>
 #include <lib/gdi/esize.h>
 #include <lib/gdi/epoint.h>
 #include <lib/gdi/erect.h>
-#include <string>
-#include <list>
 #include <lib/base/object.h>
-
-#include <set>
 
 class FontRenderClass;
 class Font;
 class gDC;
 class gFont;
-class gRGB;
+struct gRGB;
 
 #endif
+
 class fontRenderClass
 {
 #ifndef SWIG
@@ -54,13 +61,10 @@ class fontRenderClass
 	int strokerRadius;
 
 	int getFaceProperties(const std::string &face, FTC_FaceID &id, int &renderflags);
-#ifdef HAVE_FREETYPE2
-	FT_Error getGlyphBitmap(FTC_Image_Desc *font, FT_UInt glyph_index, FTC_SBit *sbit);
-	FT_Error getGlyphImage(FTC_Image_Desc *font, FT_UInt glyph_index, FT_Glyph *glyph, FT_Glyph *borderglyph, int bordersize);
-#else
-	FT_Error getGlyphBitmap(FTC_Image_Desc *font, FT_ULong glyph_index, FTC_SBit *sbit);
-	FT_Error getGlyphImage(FTC_Image_Desc *font, FT_ULong glyph_index, FT_Glyph *glyph, FT_Glyph *borderglyph, int bordersize);
-#endif
+
+    FT_Error getGlyphBitmap(FTC_Image_Desc *font, GlyphIndex glyph_index, FTC_SBit *sbit);
+    FT_Error getGlyphImage(FTC_Image_Desc *font, GlyphIndex glyph_index, FT_Glyph *glyph, FT_Glyph *borderglyph, int bordersize);
+
 	static fontRenderClass *instance;
 #else
 	fontRenderClass();
@@ -100,11 +104,8 @@ struct pGlyph
 	int x, y, w;
 	unsigned long newcolor;
 	ePtr<Font> font;
-#ifdef HAVE_FREETYPE2
-	FT_UInt glyph_index;
-#else
-	FT_ULong glyph_index;
-#endif
+	GlyphIndex glyph_index;
+
 	int flags;
 	eRect bbox;
 	FT_Glyph image, borderimage;
@@ -123,12 +124,11 @@ class eLCD;
 class eTextPara: public iObject
 {
 	DECLARE_REF(eTextPara);
-	ePtr<Font> current_font, replacement_font, fallback_font;
-	FT_Face current_face, replacement_face, fallback_face;
+	ePtr<Font> current_font, replacement_font;
+	FT_Face current_face, replacement_face;
 	int use_kerning;
 	int previous;
 	static std::string replacement_facename;
-	static std::string fallback_facename;
 	static std::set<int> forced_replaces;
 
 	eRect area;
@@ -139,7 +139,6 @@ class eTextPara: public iObject
 	std::list<int> lineOffsets;
 	std::list<int> lineChars;
 	int charCount;
-	int lineCount;
 	int totalheight;
 	int bboxValid;
 	eRect boundBox;
@@ -148,12 +147,11 @@ class eTextPara: public iObject
 	int appendGlyph(Font *current_font, FT_Face current_face, FT_UInt glyphIndex, int flags, int rflags, int border, bool last,
 			bool activate_newcolor, unsigned long newcolor);
 	void newLine(int flags);
-	void setFont(Font *font, Font *replacement_font, Font *fallback_font);
+	void setFont(Font *font, Font *replacement_font);
 	void calc_bbox();
 public:
 	eTextPara(eRect area, ePoint start=ePoint(-1, -1))
 		: current_font(0), replacement_font(0), current_face(0), replacement_face(0),
-		fallback_font(0), fallback_face(0),
 		area(area), cursor(start), maximum(0, 0), left(start.x()), charCount(0), totalheight(0),
 		bboxValid(0), doTopBottomReordering(false)
 	{
@@ -163,13 +161,10 @@ public:
 	static void setReplacementFont(std::string font) { replacement_facename=font; }
 	static void forceReplacementGlyph(int unicode) { forced_replaces.insert(unicode); }
 
-	static void setFallbackFont(std::string font) { fallback_facename=font; }
-
 	void setFont(const gFont *font);
 	int renderString(const char *string, int flags=0, int border=0);
 
 	void clear();
-	int getLineCount(void) const { return lineCount; }
 
 	void blit(gDC &dc, const ePoint &offset, const gRGB &background, const gRGB &foreground, bool border = false);
 
@@ -222,13 +217,8 @@ public:
 	FTC_ScalerRec scaler;
 	FTC_Image_Desc font;
 	fontRenderClass *renderer;
-#ifdef HAVE_FREETYPE2
-	FT_Error getGlyphBitmap(FT_UInt glyph_index, FTC_SBit *sbit);
-	FT_Error getGlyphImage(FT_UInt glyph_index, FT_Glyph *glyph, FT_Glyph *borderglyph, int bordersize);
-#else
 	FT_Error getGlyphBitmap(FT_ULong glyph_index, FTC_SBit *sbit);
 	FT_Error getGlyphImage(FT_ULong glyph_index, FT_Glyph *glyph, FT_Glyph *borderglyph, int bordersize);
-#endif
 	FT_Face face;
 	FT_Size size;
 

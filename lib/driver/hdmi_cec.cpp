@@ -128,11 +128,11 @@ eHdmiCEC::eHdmiCEC()
 	{
 #ifdef DREAMBOX
 #define HDMIDEV "/dev/misc/hdmi_cec0"
+	hdmiFd = ::open("/dev/misc/hdmi_cec0", O_RDWR | O_NONBLOCK | O_CLOEXEC);
 #else
 #define HDMIDEV "/dev/hdmi_cec"
+        hdmiFd = ::open("/dev/hdmi_cec", O_RDWR | O_NONBLOCK | O_CLOEXEC);
 #endif
-
-		hdmiFd = ::open(HDMIDEV, O_RDWR | O_NONBLOCK | O_CLOEXEC);
 		if (hdmiFd >= 0)
 		{
 
@@ -149,10 +149,6 @@ eHdmiCEC::eHdmiCEC()
 	{
 		messageNotifier = eSocketNotifier::create(eApp, hdmiFd, eSocketNotifier::Read | eSocketNotifier::Priority);
 		CONNECT(messageNotifier->activated, eHdmiCEC::hdmiEvent);
-	}
-	else
-	{
-		eDebug("[eHdmiCEC] cannot open %s: %m", HDMIDEV);
 	}
 
 	getAddressInfo();
@@ -374,7 +370,6 @@ void eHdmiCEC::hdmiEvent(int what)
 			static unsigned char pressedkey = 0;
 
 			eDebugNoNewLineStart("[eHdmiCEC] received message");
-			eDebugNoNewLine(" %02X", rxmessage.address);
 			for (int i = 0; i < rxmessage.length; i++)
 			{
 				eDebugNoNewLine(" %02X", rxmessage.data[i]);
@@ -528,7 +523,6 @@ void eHdmiCEC::sendMessage(struct cec_message &message)
 	if (hdmiFd >= 0)
 	{
 		eDebugNoNewLineStart("[eHdmiCEC] send message");
-		eDebugNoNewLine(" %02X", message.address);
 		for (int i = 0; i < message.length; i++)
 		{
 			eDebugNoNewLine(" %02X", message.data[i]);

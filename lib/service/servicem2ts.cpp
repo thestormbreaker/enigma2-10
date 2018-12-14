@@ -264,7 +264,7 @@ sync:
 	}
 
 	while (rd < count) {
-		size_t ret;
+		ssize_t ret;
 #ifdef HAVE_LIBUDFREAD
 		if (m_udf_file)
 			ret = udfread_file_read(m_udf_file, tmp, 192);
@@ -385,7 +385,7 @@ RESULT eServiceFactoryM2TS::info(const eServiceReference &ref, ePtr<iStaticServi
 
 RESULT eServiceFactoryM2TS::offlineOperations(const eServiceReference &ref, ePtr<iServiceOfflineOperations> &ptr)
 {
-	ptr = 0;
+	ptr = nullptr;
 	return -1;
 }
 

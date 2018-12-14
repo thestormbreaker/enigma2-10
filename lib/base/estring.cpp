@@ -9,14 +9,12 @@
 #include "big5.h"
 #include "gb18030.h"
 
-extern bool verbose;
-
 std::string buildShortName( const std::string &str )
 {
 	std::string tmp;
-	static char stropen[3] = { char(0xc2), char(0x86), 0x00 };
-	static char strclose[3] = { char(0xc2), char(0x87), 0x00 };
-	size_t open=std::string::npos-1;
+	static char stropen[] = "\xc2\x86";
+	static char strclose[] = "\xc2\x87";
+	size_t open = std::string::npos-1;
 	while ((open = str.find(stropen, open+2)) != std::string::npos)
 	{
 		size_t close = str.find(strclose, open);
@@ -353,46 +351,42 @@ static inline unsigned int recode(unsigned char d, int cp)
 	}
 }
 
-int UnicodeToUTF8(long c, char *out, int max)
+std::string UnicodeToUTF8(long c)
 {
-	if (max > 0 && c < 0x80 ) {
-		*out = c;
-		return 1;
+	if ( c < 0x80 ) {
+		char utf[2] = {static_cast<char>(c), 0};
+		return std::string(utf, 1);
 	}
-	else if (max > 1 && c < 0x800) {
-		*(out++) = 0xc0 | (c >> 6);
-		*out     = 0x80 | (c & 0x3f);
-		return 2;
+	else if ( c < 0x800) {
+		char utf[3] = { static_cast<char>(0xc0 | (c >> 6)), static_cast<char>(0x80 | (c & 0x3f)), 0};
+		return std::string(utf, 2);
 	}
-	else if (max > 2 && c < 0x10000) {
-		*(out++) = 0xe0 | (c >> 12);
-		*(out++) = 0x80 | ((c >> 6) & 0x3f);
-		*out     = 0x80 | (c & 0x3f);
-		return 3;
+	else if ( c < 0x10000) {
+		char utf[4] = { static_cast<char>(0xe0 | (c >> 12)), static_cast<char>(0x80 | ((c >> 6) & 0x3f)),
+				static_cast<char>(0x80 | (c & 0x3f)), 0};
+		return std::string(utf, 3);
 	}
-	else if (max > 3 && c < 0x200000) {
-		*(out++) = 0xf0 | (c >> 18);
-		*(out++) = 0x80 | ((c >> 12) & 0x3f);
-		*(out++) = 0x80 | ((c >> 6) & 0x3f);
-		*out     = 0x80 | (c & 0x3f);
-		return 4;
+	else if ( c < 0x200000) {
+		char utf[5] = { static_cast<char>(0xf0 | (c >> 18)), static_cast<char>(0x80 | ((c >> 12) & 0x3f)),
+				static_cast<char>(0x80 | ((c >> 6) & 0x3f)), static_cast<char>(0x80 | (c & 0x3f)), 0};
+		return std::string(utf, 4);
 	}
-	eDebug("[UnicodeToUTF8] invalid unicode character or not enough space to convert: code=0x%08x, max=%d", c, max);
-	return 0; // not enough space to convert or not a valid unicode
+	eDebug("[UnicodeToUTF8] invalid unicode character: code=0x%08lx", c); // not a valid unicode
+	return "";
 }
 
 std::string GB18030ToUTF8(const char *szIn, int len, int *pconvertedLen)
 {
-	char szOut[len * 2];
+	std::string szOut = "";
 	unsigned long code = 0;
-	int t = 0, i;
+	int i;
 
 	for (i = 0; i < len;) {
 		int cl = 0;
 
 		cl = gb18030_mbtowc((ucs4_t*)(&code), (const unsigned char *)szIn + i, len - i);
 		if (cl > 0) {
-			t += UnicodeToUTF8(code, szOut + t, len*2 - t);
+			szOut += UnicodeToUTF8(code);
 			i += cl;
 		}
 		else
@@ -401,14 +395,14 @@ std::string GB18030ToUTF8(const char *szIn, int len, int *pconvertedLen)
 
 	if (pconvertedLen)
 		*pconvertedLen = i;
-	return std::string(szOut, t);
+	return szOut;
 }
 
 std::string Big5ToUTF8(const char *szIn, int len, int *pconvertedLen)
 {
-	char szOut[len * 2];
+	std::string szOut = "";
 	unsigned long code = 0;
-	int t = 0, i = 0;
+	int i = 0;
 
 	for (;i < len; i++) {
 		if (((unsigned char)szIn[i] > 0xA0) && (unsigned char)szIn[i] <= 0xF9 &&
@@ -416,19 +410,16 @@ std::string Big5ToUTF8(const char *szIn, int len, int *pconvertedLen)
 			  (((unsigned char)szIn[i+1] >  0xA0) && ((unsigned char)szIn[i+1] < 0xFF))
 			) ) {
 			big5_mbtowc((ucs4_t*)(&code), (const unsigned char *)szIn + i, 2);
-			t += UnicodeToUTF8(code, szOut + t, len*2 - t);
+			szOut += UnicodeToUTF8(code);
 			i++;
 		}
 		else
-			szOut[t++] = szIn[i];
+			szOut += szIn[i];
 	}
-
-        if (i < len && szIn[i] && ((unsigned char)szIn[i] < 0xA0 || (unsigned char)szIn[i] > 0xF9))
-		szOut[t++] = szIn[i++];
 
 	if (pconvertedLen)
 		*pconvertedLen = i;
-	return std::string(szOut, t);
+	return szOut;
 }
 
 std::string convertDVBUTF8(const unsigned char *data, int len, int table, int tsidonid,int *pconvertedLen)
@@ -440,28 +431,19 @@ std::string convertDVBUTF8(const unsigned char *data, int len, int table, int ts
 	}
 
 	int i = 0;
-        int convertedLen=0;
 	std::string output = "";
-	int mask_no_tableid = 0;
-	bool ignore_tableid = false;
+
+	//eDebug("[convertDVBUTF8] table=0x%02X tsidonid=0x%08X len=%d data[0..14]]=%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X data=%s",
+	//	table, tsidonid, len,
+	//	data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+	//	data[8], data[9], data[10], data[11], data[12], data[13], data[14],
+	//	std::string((char*)data, len).c_str());
 
 	if (tsidonid)
 		encodingHandler.getTransponderDefaultMapping(tsidonid, table);
 
-	if (table >= 0 && (table & MASK_NO_TABLEID)){
-		mask_no_tableid = MASK_NO_TABLEID;
-		table &= ~MASK_NO_TABLEID;
-	}
-
-	if (table >= 0 && (table & MASK_IGNORE_TABLEID)){
-		ignore_tableid = true;
-		table &= ~MASK_IGNORE_TABLEID;
-	}
-
-        int table_preset = table;
-
 	// first byte in strings may override general encoding table.
-	switch(data[0] | mask_no_tableid)
+	switch(data[0])
 	{
 		case ISO8859_5 ... ISO8859_15:
 			// For Thai providers, encoding char is present but faulty.
@@ -516,15 +498,12 @@ std::string convertDVBUTF8(const unsigned char *data, int len, int table, int ts
 			++i;
 			table = UTF16LE_ENCODING;
 			break;
-		case HUFFMAN_ENCODING:
+		case 0x1F:
 			{
 				// Attempt to decode Freesat Huffman encoded string
 				std::string decoded_string = huffmanDecoder.decode(data, len);
-				if (!decoded_string.empty()){
-					table = HUFFMAN_ENCODING;
-					output = decoded_string;
-					break;
-				}
+				if (!decoded_string.empty())
+					return decoded_string;
 			}
 			++i;
 			eDebug("[convertDVBUTF8] failed to decode bbc freesat huffman");
@@ -537,49 +516,35 @@ std::string convertDVBUTF8(const unsigned char *data, int len, int table, int ts
 			break;
 	}
 
-	if (ignore_tableid && table != UTF8_ENCODING) {
-		table = table_preset;
-	}
-
 	bool useTwoCharMapping = !table || (tsidonid && encodingHandler.getTransponderUseTwoCharMapping(tsidonid));
 
 	if (useTwoCharMapping && table == 5) { // i hope this dont break other transponders which realy use ISO8859-5 and two char byte mapping...
 //		eDebug("[convertDVBUTF8] Cyfra / Cyfrowy Polsat HACK... override given ISO8859-5 with ISO6937");
 		table = 0;
 	}
-	else if (table <= 0)
+	else if ( table == -1 )
 		table = defaultEncodingTable;
 
 	switch(table)
 	{
-		case HUFFMAN_ENCODING:
-			{
-				if (output.empty()){
-					// Attempt to decode Freesat Huffman encoded string
-					std::string decoded_string = huffmanDecoder.decode(data, len);
-					if (!decoded_string.empty())
-						output = decoded_string;
-				}
-				if (!output.empty())
-					convertedLen += len;
-			}
-			break;
 		case UTF8_ENCODING:
 			output = std::string((char*)data + i, len - i);
-			convertedLen += i;
+			if (pconvertedLen)
+				*pconvertedLen += len;
 			break;
 		case GB18030_ENCODING:
-			output = GB18030ToUTF8((const char *)(data + i), len - i, &convertedLen);
-			convertedLen += i;
+			output = GB18030ToUTF8((const char *)(data + i), len - i, pconvertedLen);
+			if (pconvertedLen)
+				*pconvertedLen += len;
 			break;
 		case BIG5_ENCODING:
-			output = Big5ToUTF8((const char *)(data + i), len - i, &convertedLen);
-			convertedLen += i;
+			output = Big5ToUTF8((const char *)(data + i), len - i, pconvertedLen);
+			if (pconvertedLen)
+				*pconvertedLen += len;
 			break;
 		default:
-			char res[4096];
-			int t = 0;
-			while (i < len && t < sizeof(res))
+			std::string res = "";
+			while (i < len)
 			{
 				unsigned long code = 0;
 				if (useTwoCharMapping && i+1 < len && (code = doVideoTexSuppl(data[i], data[i+1])))
@@ -629,25 +594,17 @@ std::string convertDVBUTF8(const unsigned char *data, int len, int table, int ts
 
 				if (!code)
 					continue;
-				t += UnicodeToUTF8(code, res + t, sizeof(res) - t);
+				res += UnicodeToUTF8(code);
 			}
-			convertedLen = i;
-			output = std::string((char*)res, t);
+			if (pconvertedLen)
+				*pconvertedLen = i;
+			output = res;
 			break;
 	}
 
-	if (convertedLen < len)
-		eDebug("[convertDVBUTF8] %d chars converted, and %d chars left..", convertedLen, len-convertedLen);
-
-        if (pconvertedLen)
-		*pconvertedLen = convertedLen;
-
-	if (verbose)
-		eDebug("[convertDVBUTF8] table=0x%02X tsid:onid=0x%X:0x%X data[0..14]=%s   output:%s\n",
-			table, (unsigned int)tsidonid >> 16, tsidonid & 0xFFFFU,
-			string_to_hex(std::string((char*)data, len < 15 ? len : 15)).c_str(),
-			output.c_str());
-
+	if (pconvertedLen && *pconvertedLen < len)
+		eDebug("[convertDVBUTF8] %d chars converted, and %d chars left..", *pconvertedLen, len-*pconvertedLen);
+	//eDebug("[convertDVBUTF8] table=0x%02X twochar=%d output:%s\n", table, useTwoCharMapping, output.c_str());
 	return output;
 }
 
@@ -715,16 +672,16 @@ std::string convertUTF8DVB(const std::string &string, int table)
 
 std::string convertLatin1UTF8(const std::string &string)
 {
-	unsigned int t = 0, i = 0, len = string.size();
+	unsigned int i = 0, len = string.size();
 
-	char res[4096];
+	std::string res = "";
 
 	while (i < len)
 	{
 		unsigned long code = (unsigned char)string[i++];
-		t += UnicodeToUTF8(code, res + t, sizeof(res) - t);
+		res += UnicodeToUTF8(code);
 	}
-	return std::string((char*)res, t);
+	return res;
 }
 
 int isUTF8(const std::string &string)
@@ -770,11 +727,10 @@ int isUTF8(const std::string &string)
 unsigned int truncateUTF8(std::string &s, unsigned int newsize)
 {
         unsigned int len = s.size();
-        unsigned char* const data = (unsigned char*)s.data();
 
         // Assume s is a real UTF8 string!!!
         while (len > newsize) {
-                while (len-- > 0  && (data[len] & 0xC0) == 0x80)
+                while (len-- > 0  && (s[len] & 0xC0) == 0x80)
                         ; // remove UTF data bytes,  e.g. range 0x80 - 0xBF
                 if (len > 0)   // remove the UTF startbyte, or normal ascii character
                          --len;
@@ -912,22 +868,4 @@ std::string urlDecode(const std::string &s)
 		}
 	}
 	return res;
-}
-
-std::string string_to_hex(const std::string& input)
-{
-    static const char* const lut = "0123456789ABCDEF";
-    size_t len = input.length();
-
-    std::string output;
-    output.reserve(3 * len);
-    for (size_t i = 0; i < len; ++i)
-    {
-        const unsigned char c = input[i];
-        if (i)
-		output.push_back(' ');
-        output.push_back(lut[c >> 4]);
-        output.push_back(lut[c & 15]);
-    }
-    return output;
 }
