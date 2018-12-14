@@ -11,7 +11,6 @@ from Tools.Directories import resolveFilename, SCOPE_SKIN, SCOPE_SKIN_IMAGE, SCO
 from Tools.Import import my_import
 from Tools.LoadPixmap import LoadPixmap
 from Components.RcModel import rc_model
-from boxbranding import getBoxType
 
 colorNames = {}
 switchPixmap = {}  # dict()
@@ -253,7 +252,7 @@ def parseParameter(s):
 	else:
 		return s
 
-def collectAttributes(skinAttributes, node, context, skin_path_prefix=None, ignore=(), filenames=frozenset(("pixmap", "pointer", "seek_pointer", "backgroundPixmap", "selectionPixmap", "sliderPixmap", "scrollbarbackgroundPixmap"))):
+def collectAttributes(skinAttributes, node, context, skin_path_prefix=None, ignore=(), filenames=frozenset(("pixmap", "pointer", "seek_pointer", "backgroundPixmap", "selectionPixmap", "sliderPixmap", "scrollbarSliderPicture", "scrollbarbackgroundPixmap", "scrollbarBackgroundPicture"))):
 	# walk all attributes
 	size = None
 	pos = None
@@ -347,6 +346,8 @@ class AttributeParser:
 		self.guiObject.setText(_(value))
 	def font(self, value):
 		self.guiObject.setFont(parseFont(value, self.scaleTuple))
+	def secondfont(self, value):
+		self.guiObject.setSecondFont(parseFont(value, self.scaleTuple))
 	def zPosition(self, value):
 		self.guiObject.setZPosition(int(value))
 	def itemHeight(self, value):
@@ -364,6 +365,12 @@ class AttributeParser:
 		ptr = loadPixmap(value, self.desktop)
 		self.guiObject.setSliderPicture(ptr)
 	def scrollbarbackgroundPixmap(self, value):
+		ptr = loadPixmap(value, self.desktop)
+		self.guiObject.setScrollbarBackgroundPicture(ptr)
+	def scrollbarSliderPicture(self, value):	# for compability same as sliderPixmap
+		ptr = loadPixmap(value, self.desktop)
+		self.guiObject.setSliderPicture(ptr)
+	def scrollbarBackgroundPicture(self, value):	# for compability same as scrollbarbackgroundPixmap
 		ptr = loadPixmap(value, self.desktop)
 		self.guiObject.setScrollbarBackgroundPicture(ptr)
 	def alphatest(self, value):
@@ -446,6 +453,14 @@ class AttributeParser:
 		self.guiObject.setBorderColor(parseColor(value))
 	def borderWidth(self, value):
 		self.guiObject.setBorderWidth(int(value))
+	def scrollbarSliderBorderWidth(self, value):
+		self.guiObject.setScrollbarSliderBorderWidth(int(value))
+	def scrollbarWidth(self, value):
+		self.guiObject.setScrollbarWidth(int(value))
+	def scrollbarSliderBorderColor(self, value):
+		self.guiObject.setSliderBorderColor(parseColor(value))
+	def scrollbarSliderForegroundColor(self, value):
+		self.guiObject.setSliderForegroundColor(parseColor(value))
 	def scrollbarMode(self, value):
 		self.guiObject.setScrollbarMode(getattr(self.guiObject, value))
 		#	{ "showOnDemand": self.guiObject.showOnDemand,
