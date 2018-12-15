@@ -316,7 +316,7 @@ int eDVBPMTParser::getProgramInfo(program &program)
 								case 0x44524131: /*DRA is "DRA1"*/
 									isaudio = 1;
 									audio.type = audioStream::atDRA;
-									break;										
+									break;
 								case 0x56432d31: // == 'VC-1'
 								{
 									const AdditionalIdentificationInfoVector *vec = d->getAdditionalIdentificationInfo();
@@ -395,7 +395,7 @@ int eDVBPMTParser::getProgramInfo(program &program)
 						isvideo = 1;
 						video.type = videoStream::vtH265_HEVC;
 					}		
-							
+					
 					prev_audio = 0;
 					break;
 				}
