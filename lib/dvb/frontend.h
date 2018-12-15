@@ -1,185 +1,333 @@
-#ifndef __dvb_frontend_h
-#define __dvb_frontend_h
+#ifndef __lib_dvb_frontendparms_h
+#define __lib_dvb_frontendparms_h
 
-#ifndef DTV_SCRAMBLING_SEQUENCE_INDEX
-#define DTV_SCRAMBLING_SEQUENCE_INDEX 70
-#endif
+#include <vector>
 
-#include <map>
+#include <dvbsi++/satellite_delivery_system_descriptor.h>
+#include <dvbsi++/s2_satellite_delivery_system_descriptor.h>
+#include <dvbsi++/cable_delivery_system_descriptor.h>
+#include <dvbsi++/terrestrial_delivery_system_descriptor.h>
+#include <dvbsi++/t2_delivery_system_descriptor.h>
+
+#include <lib/python/swig.h>
 #include <lib/dvb/idvb.h>
-#include <lib/dvb/frontendparms.h>
 
-class eDVBFrontendParameters: public iDVBFrontendParameters
+#include <linux/dvb/frontend.h>
+
+class eDVBFrontendParametersSatellite
 {
-	DECLARE_REF(eDVBFrontendParameters);
-	union
-	{
-		eDVBFrontendParametersSatellite sat;
-		eDVBFrontendParametersCable cable;
-		eDVBFrontendParametersTerrestrial terrestrial;
-		eDVBFrontendParametersATSC atsc;
-	};
-	int m_type;
-	int m_flags;
 public:
-	eDVBFrontendParameters();
-	~eDVBFrontendParameters()
-	{
-	}
-
-	SWIG_VOID(RESULT) getSystem(int &SWIG_OUTPUT) const;
-	SWIG_VOID(RESULT) getDVBS(eDVBFrontendParametersSatellite &SWIG_OUTPUT) const;
-	SWIG_VOID(RESULT) getDVBC(eDVBFrontendParametersCable &SWIG_OUTPUT) const;
-	SWIG_VOID(RESULT) getDVBT(eDVBFrontendParametersTerrestrial &SWIG_OUTPUT) const;
-	SWIG_VOID(RESULT) getATSC(eDVBFrontendParametersATSC &SWIG_OUTPUT) const;
-
-	RESULT setDVBS(const eDVBFrontendParametersSatellite &p, bool no_rotor_command_on_tune=false);
-	RESULT setDVBC(const eDVBFrontendParametersCable &p);
-	RESULT setDVBT(const eDVBFrontendParametersTerrestrial &p);
-	RESULT setATSC(const eDVBFrontendParametersATSC &p);
-	SWIG_VOID(RESULT) getFlags(unsigned int &SWIG_NAMED_OUTPUT(flags)) const { flags = m_flags; return 0; }
-	RESULT setFlags(unsigned int flags) { m_flags = flags; return 0; }
 #ifndef SWIG
-	RESULT calculateDifference(const iDVBFrontendParameters *parm, int &, bool exact) const;
-
-	RESULT getHash(unsigned long &) const;
-	RESULT calcLockTimeout(unsigned int &) const;
+	void set(const SatelliteDeliverySystemDescriptor  &);
+	void set(const S2SatelliteDeliverySystemDescriptor  &);
 #endif
+	enum {
+		Polarisation_Horizontal, Polarisation_Vertical, Polarisation_CircularLeft, Polarisation_CircularRight
+	};
+
+	enum {
+		Inversion_Off, Inversion_On, Inversion_Unknown
+	};
+
+	/* WARNING: do not change the order of these values, they are used to parse lamedb and satellites.xml FEC fields */
+	enum {
+		FEC_Auto=0, FEC_1_2=1, FEC_2_3=2, FEC_3_4=3, FEC_5_6=4, FEC_7_8=5, FEC_8_9=6, FEC_3_5=7, FEC_4_5=8, FEC_9_10=9, FEC_6_7=10, FEC_None=15
+	};
+
+	enum {
+		System_DVB_S, System_DVB_S2
+	};
+
+	enum {
+		Modulation_Auto, Modulation_QPSK, Modulation_8PSK, Modulation_QAM16, Modulation_16APSK, Modulation_32APSK
+	};
+
+	// dvb-s2
+	enum {
+		RollOff_alpha_0_35, RollOff_alpha_0_25, RollOff_alpha_0_20, RollOff_auto
+	};
+
+	enum {
+		Pilot_Off, Pilot_On, Pilot_Unknown
+	};
+
+	enum {
+		PLS_Root, PLS_Gold, PLS_Combo, PLS_Unknown
+	};
+
+	enum {
+		No_Stream_Id_Filter = NO_STREAM_ID_FILTER
+	};
+
+	enum {
+		PLS_Default_Gold_Code, PLS_Default_Root_Code
+	};
+
+	bool no_rotor_command_on_tune;
+	unsigned int frequency, symbol_rate;
+	int polarisation, fec, inversion, orbital_position, system, modulation, rolloff, pilot, is_id, pls_mode, pls_code;
 };
+SWIG_ALLOW_OUTPUT_SIMPLE(eDVBFrontendParametersSatellite);
 
+class eDVBFrontendParametersCable
+{
+public:
 #ifndef SWIG
+	void set(const CableDeliverySystemDescriptor  &);
+#endif
+	enum {
+		Inversion_Off, Inversion_On, Inversion_Unknown
+	};
 
-#include <lib/dvb/sec.h>
-class eSecCommandList;
+	/*
+	 * WARNING: do not change the order of these values, they are used to parse lamedb and cables.xml FEC fields.
+	 * The values are the same as those in eDVBFrontendParametersSatellite.
+	 */
+	enum {
+		FEC_Auto=0, FEC_1_2=1, FEC_2_3=2, FEC_3_4=3, FEC_5_6=4, FEC_7_8=5, FEC_8_9=6, FEC_3_5=7, FEC_4_5=8, FEC_9_10=9, FEC_6_7=10, FEC_None=15
+	};
 
-class eDVBFrontend: public iDVBFrontend, public sigc::trackable
+	enum {
+		System_DVB_C_ANNEX_A, System_DVB_C_ANNEX_C
+	};
+
+	enum {
+		Modulation_Auto, Modulation_QAM16, Modulation_QAM32, Modulation_QAM64, Modulation_QAM128, Modulation_QAM256
+	};
+
+	unsigned int frequency, symbol_rate;
+	int modulation, inversion, fec_inner, system;
+};
+SWIG_ALLOW_OUTPUT_SIMPLE(eDVBFrontendParametersCable);
+
+class eDVBFrontendParametersTerrestrial
+{
+public:
+#ifndef SWIG
+	void set(const TerrestrialDeliverySystemDescriptor  &);
+	void set(const T2DeliverySystemDescriptor &);
+#endif
+	enum {
+		Bandwidth_8MHz, Bandwidth_7MHz, Bandwidth_6MHz, Bandwidth_Auto, Bandwidth_5MHz, Bandwidth_1_712MHz, Bandwidth_10MHz
+	};
+
+	/*
+	 * WARNING: do not change the order of these values, they are used to parse lamedb and terrestrial.xml FEC fields.
+	 * The values are NOT the same as those in eDVBFrontendParametersSatellite/eDVBFrontendParametersCable
+	 * (and it's too late to fix this now, we would break backward compatibility)
+	 */
+	enum {
+		FEC_1_2=0, FEC_2_3=1, FEC_3_4=2, FEC_5_6=3, FEC_7_8=4, FEC_Auto=5, FEC_6_7=6, FEC_8_9=7, FEC_3_5=8, FEC_4_5=9
+	};
+
+	enum {
+		System_DVB_T_T2 = -1, System_DVB_T, System_DVB_T2
+	};
+
+	enum {
+		TransmissionMode_2k, TransmissionMode_8k, TransmissionMode_Auto, TransmissionMode_4k, TransmissionMode_1k, TransmissionMode_16k, TransmissionMode_32k
+	};
+
+	enum {
+		GuardInterval_1_32, GuardInterval_1_16, GuardInterval_1_8, GuardInterval_1_4, GuardInterval_Auto, GuardInterval_1_128, GuardInterval_19_128, GuardInterval_19_256
+	};
+
+	enum {
+		Hierarchy_None, Hierarchy_1, Hierarchy_2, Hierarchy_4, Hierarchy_Auto
+	};
+
+	enum {
+		Modulation_QPSK, Modulation_QAM16, Modulation_QAM64, Modulation_Auto, Modulation_QAM256
+	};
+
+	enum {
+		Inversion_Off, Inversion_On, Inversion_Unknown
+	};
+
+	unsigned int frequency;
+	int bandwidth;
+	int code_rate_HP, code_rate_LP;
+	int modulation;
+	int transmission_mode;
+	int guard_interval;
+	int hierarchy;
+	int inversion;
+	int system;
+	int plp_id;
+};
+SWIG_ALLOW_OUTPUT_SIMPLE(eDVBFrontendParametersTerrestrial);
+
+class eDVBFrontendParametersATSC
 {
 public:
 	enum {
-		NEW_CSW,
-		NEW_UCSW,
-		NEW_TONEBURST,
-		CSW,                  // state of the committed switch
-		UCSW,                 // state of the uncommitted switch
-		TONEBURST,            // current state of toneburst switch
-		NEW_ROTOR_CMD,        // prev sent rotor cmd
-		NEW_ROTOR_POS,        // new rotor position (not validated)
-		ROTOR_CMD,            // completed rotor cmd (finalized)
-		ROTOR_POS,            // current rotor position
-		LINKED_PREV_PTR,      // prev double linked list (for linked FEs)
-		LINKED_NEXT_PTR,      // next double linked list (for linked FEs)
-		SATPOS_DEPENDS_PTR,   // pointer to FE with configured rotor (with twin/quattro lnb)
-		FREQ_OFFSET,          // current frequency offset
-		CUR_VOLTAGE,          // current voltage
-		CUR_TONE,             // current continuous tone
-		SATCR,                // current SatCR
-		DICTION,              // current "diction" (0 = normal, 1 = Unicable, 2 = JESS)
-		NUM_DATA_ENTRIES
+		Inversion_Off, Inversion_On, Inversion_Unknown
 	};
-	sigc::signal1<void,iDVBFrontend*> m_stateChanged;
-private:
-	DECLARE_REF(eDVBFrontend);
-	bool m_simulate;
-	bool m_enabled;
-	bool m_fbc;
-	eDVBFrontend *m_simulate_fe; // only used to set frontend type in dvb.cpp
-	int m_type;
-	int m_dvbid;
-	int m_slotid;
-	int m_fd;
-#define DVB_VERSION(major, minor) ((major << 8) | minor)
-	int m_dvbversion;
-	bool m_rotor_mode;
-	bool m_need_rotor_workaround;
-	bool m_blindscan;
-	bool m_multitype;
-	std::map<fe_delivery_system_t, bool> m_delsys, m_delsys_whitelist;
-	std::string m_filename;
-	char m_description[128];
-	dvb_frontend_info fe_info;
-	int satfrequency;
-	eDVBFrontendParameters oparm;
 
-	int m_state;
-	ePtr<iDVBSatelliteEquipmentControl> m_sec;
-	ePtr<eSocketNotifier> m_sn;
-	int m_tuning;
-	ePtr<eTimer> m_timeout, m_tuneTimer;
+	enum {
+		System_ATSC, System_DVB_C_ANNEX_B
+	};
 
-	eSecCommandList m_sec_sequence;
+	enum {
+		Modulation_Auto, Modulation_QAM16, Modulation_QAM32, Modulation_QAM64, Modulation_QAM128, Modulation_QAM256, Modulation_VSB_8, Modulation_VSB_16
+	};
 
-	long m_data[NUM_DATA_ENTRIES];
+	unsigned int frequency;
+	int modulation, inversion, system;
+};
+SWIG_ALLOW_OUTPUT_SIMPLE(eDVBFrontendParametersATSC);
 
-	int m_idleInputpower[2];  // 13V .. 18V
-	int m_runningInputpower;
+#ifndef SWIG
 
-	int m_timeoutCount; // needed for timeout
-	int m_retryCount; // diseqc retry for rotor
+class eDVBFrontend;
 
-	void feEvent(int);
-	void timeout();
-	void tuneLoop();  // called by m_tuneTimer
-	int tuneLoopInt();
-	void setFrontend(bool recvEvents=true);
-	bool setSecSequencePos(int steps);
-	int calculateSignalPercentage(int signalqualitydb);
-	void calculateSignalQuality(int snr, int &signalquality, int &signalqualitydb);
+class eDVBFrontendStatus : public iDVBFrontendStatus
+{
+	DECLARE_REF(eDVBFrontendStatus);
 
-	static int PriorityOrder;
-	static int PreferredFrontendIndex;
+	ePtr<eDVBFrontend> frontend;
+
 public:
-	eDVBFrontend(const char *devidenodename, int fe, int &ok, bool simulate=false, eDVBFrontend *simulate_fe=NULL);
-	virtual ~eDVBFrontend();
+	eDVBFrontendStatus(ePtr<eDVBFrontend> &fe);
 
-	int readInputpower();
-	RESULT getFrontendType(int &type);
-	RESULT tune(const iDVBFrontendParameters &where, bool blindscan = false);
-	RESULT prepare_sat(const eDVBFrontendParametersSatellite &, unsigned int timeout);
-	RESULT prepare_cable(const eDVBFrontendParametersCable &);
-	RESULT prepare_terrestrial(const eDVBFrontendParametersTerrestrial &);
-	RESULT prepare_atsc(const eDVBFrontendParametersATSC &);
-	RESULT connectStateChange(const sigc::slot1<void,iDVBFrontend*> &stateChange, ePtr<eConnection> &connection);
-	RESULT getState(int &state);
-	RESULT setTone(int tone);
-	RESULT setVoltage(int voltage);
-	RESULT sendDiseqc(const eDVBDiseqcCommand &diseqc);
-	RESULT sendToneburst(int burst);
-	RESULT setSEC(iDVBSatelliteEquipmentControl *sec);
-	RESULT setSecSequence(eSecCommandList &list);
-	RESULT getData(int num, long &data);
-	RESULT setData(int num, long val);
-
-	int readFrontendData(int type); // iFrontendInformation_ENUMS
-	void getFrontendStatus(ePtr<iDVBFrontendStatus> &dest);
-	void getTransponderData(ePtr<iDVBTransponderData> &dest, bool original);
-	void getFrontendData(ePtr<iDVBFrontendData> &dest);
-
-	int isCompatibleWith(ePtr<iDVBFrontendParameters> &feparm);
-	int getDVBID() { return m_dvbid; }
-	int getSlotID() { return m_slotid; }
-	bool setSlotInfo(int id, const char *descr, bool enabled, bool isDVBS2, int frontendid);
-	static void setTypePriorityOrder(int val) { PriorityOrder = val; }
-	static int getTypePriorityOrder() { return PriorityOrder; }
-	static void setPreferredFrontend(int index) { PreferredFrontendIndex = index; }
-	static int getPreferredFrontend() { return PreferredFrontendIndex; }
-	bool supportsDeliverySystem(const fe_delivery_system_t &sys, bool obeywhitelist);
-	void setDeliverySystemWhitelist(const std::vector<fe_delivery_system_t> &whitelist);
-	bool setDeliverySystem(const char *type);
-
-	void reopenFrontend();
-	int openFrontend();
-	int closeFrontend(bool force=false, bool no_delayed=false);
-	const char *getDescription() const { return m_description; }
-	const dvb_frontend_info getFrontendInfo() const { return fe_info; }
-	bool is_simulate() const { return m_simulate; }
-	bool is_FBCTuner() { return m_fbc; }
-	void set_FBCTuner(bool yesno) { m_fbc = yesno; }
-	bool getEnabled() { return m_enabled; }
-	void setEnabled(bool enable) { m_enabled = enable; }
-	bool is_multistream();
-	std::string getCapabilities();
+	int getState() const;
+	std::string getStateDescription() const;
+	int getLocked() const;
+	int getSynced() const;
+	int getBER() const;
+	int getSNR() const;
+	int getSNRdB() const;
+	int getSignalPower() const;
 };
 
-#endif // SWIG
+class eDVBTransponderData : public iDVBTransponderData
+{
+protected:
+	std::vector<struct dtv_property> dtvProperties;
+	bool originalValues;
+	int getProperty(unsigned int cmd) const;
+
+public:
+	eDVBTransponderData(struct dtv_property *dtvproperties, unsigned int propertycount, bool original);
+
+	int getInversion() const;
+	unsigned int getFrequency() const;
+	unsigned int getSymbolRate() const;
+	int getOrbitalPosition() const;
+	int getFecInner() const;
+	int getModulation() const;
+	int getPolarization() const;
+	int getRolloff() const;
+	int getPilot() const;
+	int getSystem() const;
+	int getIsId() const;
+	int getPLSMode() const;
+	int getPLSCode() const;
+	int getBandwidth() const;
+	int getCodeRateLp() const;
+	int getCodeRateHp() const;
+	int getConstellation() const;
+	int getTransmissionMode() const;
+	int getGuardInterval() const;
+	int getHierarchyInformation() const;
+	int getPlpId() const;
+};
+
+class eDVBSatelliteTransponderData : public eDVBTransponderData
+{
+	DECLARE_REF(eDVBSatelliteTransponderData);
+
+	eDVBFrontendParametersSatellite transponderParameters;
+	int frequencyOffset;
+
+public:
+	eDVBSatelliteTransponderData(struct dtv_property *dtvproperties, unsigned int propertycount, eDVBFrontendParametersSatellite &transponderparms, int frequencyoffset, bool original);
+
+	std::string getTunerType() const;
+	int getInversion() const;
+	unsigned int getFrequency() const;
+	unsigned int getSymbolRate() const;
+	int getOrbitalPosition() const;
+	int getFecInner() const;
+	int getModulation() const;
+	int getPolarization() const;
+	int getRolloff() const;
+	int getPilot() const;
+	int getSystem() const;
+	int getIsId() const;
+	int getPLSMode() const;
+	int getPLSCode() const;
+};
+
+class eDVBCableTransponderData : public eDVBTransponderData
+{
+	DECLARE_REF(eDVBCableTransponderData);
+
+	eDVBFrontendParametersCable transponderParameters;
+
+public:
+	eDVBCableTransponderData(struct dtv_property *dtvproperties, unsigned int propertycount, eDVBFrontendParametersCable &transponderparms, bool original);
+
+	std::string getTunerType() const;
+	int getInversion() const;
+	unsigned int getFrequency() const;
+	unsigned int getSymbolRate() const;
+	int getFecInner() const;
+	int getModulation() const;
+	int getSystem() const;
+};
+
+class eDVBTerrestrialTransponderData : public eDVBTransponderData
+{
+	DECLARE_REF(eDVBTerrestrialTransponderData);
+
+	eDVBFrontendParametersTerrestrial transponderParameters;
+
+public:
+	eDVBTerrestrialTransponderData(struct dtv_property *dtvproperties, unsigned int propertycount, eDVBFrontendParametersTerrestrial &transponderparms, bool original);
+
+	std::string getTunerType() const;
+	int getInversion() const;
+	unsigned int getFrequency() const;
+	int getBandwidth() const;
+	int getCodeRateLp() const;
+	int getCodeRateHp() const;
+	int getConstellation() const;
+	int getTransmissionMode() const;
+	int getGuardInterval() const;
+	int getHierarchyInformation() const;
+	int getPlpId() const;
+	int getSystem() const;
+};
+
+class eDVBATSCTransponderData : public eDVBTransponderData
+{
+	DECLARE_REF(eDVBATSCTransponderData);
+
+	eDVBFrontendParametersATSC transponderParameters;
+
+public:
+	eDVBATSCTransponderData(struct dtv_property *dtvproperties, unsigned int propertycount, eDVBFrontendParametersATSC &transponderparms, bool original);
+
+	std::string getTunerType() const;
+	int getInversion() const;
+	unsigned int getFrequency() const;
+	int getModulation() const;
+	int getSystem() const;
+};
+
+class eDVBFrontendData : public iDVBFrontendData
+{
+	DECLARE_REF(eDVBFrontendData);
+
+	ePtr<eDVBFrontend> frontend;
+
+public:
+	eDVBFrontendData(ePtr<eDVBFrontend> &fe);
+
+	int getNumber() const;
+	std::string getTypeDescription() const;
+};
+#endif
 
 #endif
