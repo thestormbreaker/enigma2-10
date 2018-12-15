@@ -715,12 +715,8 @@ int eDVBFrontend::openFrontend()
 		}
 	}
 
-#if defined SYS_DVBC_ANNEX_A
 	m_multitype = m_delsys[SYS_DVBS] && (m_delsys[SYS_DVBT] || m_delsys[SYS_DVBC_ANNEX_A]);
-#else
-	m_multitype = m_delsys[SYS_DVBS] && (m_delsys[SYS_DVBT] || m_delsys[SYS_DVBC_ANNEX_AC]);
-#endif
- 
+
 	if (!m_multitype)
 		m_type = feSatellite;
 
@@ -1118,7 +1114,7 @@ void eDVBFrontend::calculateSignalQuality(int snr, int &signalquality, int &sign
 	{
 		ret = (int)((((double(snr) / (65535.0 / 100.0)) * 0.1950) - 1.0000) * 100);
 	}
-		else if (!strcmp(m_description, "DVB-C NIM(3128 FBC)"))
+	else if (!strcmp(m_description, "DVB-C NIM(3128 FBC)"))
 	{
 		ret = (int)(snr / 17);
 	}
@@ -1434,6 +1430,7 @@ void eDVBFrontend::getTransponderData(ePtr<iDVBTransponderData> &dest, bool orig
 		p[cmdseq.num++].cmd = DTV_FREQUENCY;
 		p[cmdseq.num++].cmd = DTV_INVERSION;
 		p[cmdseq.num++].cmd = DTV_MODULATION;
+		p[cmdseq.num++].cmd = DTV_API_VERSION;
 		if (type == feSatellite)
 		{
 			p[cmdseq.num++].cmd = DTV_SYMBOL_RATE;
@@ -1441,6 +1438,10 @@ void eDVBFrontend::getTransponderData(ePtr<iDVBTransponderData> &dest, bool orig
 			p[cmdseq.num++].cmd = DTV_ROLLOFF;
 			p[cmdseq.num++].cmd = DTV_PILOT;
 			p[cmdseq.num++].cmd = DTV_STREAM_ID;
+			if (m_dvbversion >= DVB_VERSION(5, 11))
+			{
+				p[cmdseq.num++].cmd = DTV_SCRAMBLING_SEQUENCE_INDEX;
+			}
 		}
 		else if (type == feCable)
 		{
@@ -2067,9 +2068,15 @@ void eDVBFrontend::setFrontend(bool recvEvents)
 			{
 				p[cmdseq.num].cmd = DTV_ROLLOFF, p[cmdseq.num].u.data = rolloff, cmdseq.num++;
 				p[cmdseq.num].cmd = DTV_PILOT, p[cmdseq.num].u.data = pilot, cmdseq.num++;
-#if defined DTV_STREAM_ID
-				p[cmdseq.num].cmd = DTV_STREAM_ID, p[cmdseq.num].u.data = parm.is_id | (parm.pls_code << 8) | (parm.pls_mode << 26), cmdseq.num++;
-#endif
+								if (m_dvbversion >= DVB_VERSION(5, 11))
+				{
+					p[cmdseq.num].cmd = DTV_STREAM_ID, p[cmdseq.num].u.data = parm.is_id, cmdseq.num++;
+					p[cmdseq.num].cmd = DTV_SCRAMBLING_SEQUENCE_INDEX, p[cmdseq.num].u.data = parm.pls_code, cmdseq.num++;
+				}
+				else
+				{
+					p[cmdseq.num].cmd = DTV_STREAM_ID, p[cmdseq.num].u.data = parm.is_id | (parm.pls_code << 8) | (parm.pls_mode << 26), cmdseq.num++;
+				}
 			}
 		}
 		else if (type == iDVBFrontend::feCable)
@@ -2904,14 +2911,10 @@ bool eDVBFrontend::setDeliverySystem(const char *type)
 		p[0].u.data = SYS_DVBT;
 		fetype = feTerrestrial;
 	}
- 	else if (!strcmp(type, "DVB-C"))
- 	{
-#if defined SYS_DVBC_ANNEX_A
- 		p[0].u.data = SYS_DVBC_ANNEX_A;
-#else
-		p[0].u.data = SYS_DVBC_ANNEX_AC;
-#endif
- 		fetype = feCable;
+	else if (!strcmp(type, "DVB-C"))
+	{
+		p[0].u.data = SYS_DVBC_ANNEX_A;
+		fetype = feCable;
 	}
 	else if (!strcmp(type, "ATSC"))
 	{
@@ -3045,16 +3048,12 @@ std::string eDVBFrontend::getCapabilities()
 		case SYS_ISDBC:		ss << " ISDBC"; break;
 		case SYS_ISDBS:		ss << " ISDBS"; break;
 		case SYS_ISDBT:		ss << " ISDBT"; break;
- 		case SYS_UNDEFINED:	ss << " UNDEFINED"; break;
-#if defined DVBC_ANNEX_A
- 		case SYS_DVBC_ANNEX_A:	ss << " DVBC_ANNEX_A"; break;
- 		case SYS_DVBC_ANNEX_C:	ss << " DVBC_ANNEX_C"; break;
-#else
-		case SYS_DVBC_ANNEX_AC:	ss << " DVBC_ANNEX_A"; break;
-#endif
- 		case SYS_DVBT2:		ss << " DVBT2"; break;
- 		case SYS_TURBO:		ss << " TURBO"; break;
- 		}
+		case SYS_UNDEFINED:	ss << " UNDEFINED"; break;
+		case SYS_DVBC_ANNEX_A:	ss << " DVBC_ANNEX_A"; break;
+		case SYS_DVBC_ANNEX_C:	ss << " DVBC_ANNEX_C"; break;
+		case SYS_DVBT2:		ss << " DVBT2"; break;
+		case SYS_TURBO:		ss << " TURBO"; break;
+		}
 	}
 
 	return ss.str();
