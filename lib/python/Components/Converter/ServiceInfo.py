@@ -177,8 +177,7 @@ class ServiceInfo(Converter, object):
 		elif self.type == self.IS_NOT_WIDESCREEN:
 			return video_aspect not in WIDESCREEN
 		elif self.type == self.SUBSERVICES_AVAILABLE:
-			return 
-hasActiveSubservicesForCurrentChannel(':'.join(info.getInfoString(iServiceInformation.sServiceref).split(':')[:11]))
+			return hasActiveSubservicesForCurrentChannel(':'.join(info.getInfoString(iServiceInformation.sServiceref).split(':')[:11]))
 		elif self.type == self.HAS_HBBTV:
 			return info.getInfoString(iServiceInformation.sHBBTVUrl) != ""
 		elif self.type == self.AUDIOTRACKS_AVAILABLE:
@@ -207,7 +206,7 @@ hasActiveSubservicesForCurrentChannel(':'.join(info.getInfoString(iServiceInform
 		elif self.type == self.IS_480:
 			return video_height > 0 and video_height <= 480
 		elif self.type == self.IS_4K:
-			return video_height >= 2100
+			return video_height >= 1200
 		elif self.PROGRESSIVE:
 			return bool(self._getProgressive(info))
 		return False
