@@ -120,14 +120,11 @@ int eDVBAudio::startPid(int pid, int type)
 			break;
 		case aDRA:
 			bypass = 0x40;
-			break;	
- 		case aDDP:
-#ifdef DREAMBOX
-			bypass = 7;
-#else
- 			bypass = 0x22;
-#endif
- 			break;
+			break;			
+		case aDDP:
+                        bypass = 7;
+			bypass = 0x22;
+			break;
 		}
 
 		eDebugNoNewLineStart("[eDVBAudio%d] AUDIO_SET_BYPASS bypass=%d ", m_dev, bypass);
@@ -306,11 +303,7 @@ eDVBVideo::eDVBVideo(eDVBDemux *demux, int dev)
 #define VIDEO_STREAMTYPE_MPEG4_Part2 4
 #define VIDEO_STREAMTYPE_VC1_SM 5
 #define VIDEO_STREAMTYPE_MPEG1 6
-#ifdef DREAMBOX
-#define VIDEO_STREAMTYPE_H265_HEVC 22
-#else
 #define VIDEO_STREAMTYPE_H265_HEVC 7
-#endif
 #define VIDEO_STREAMTYPE_AVS 16
 
 int eDVBVideo::startPid(int pid, int type)
@@ -1242,7 +1235,7 @@ RESULT eTSMPEGDecoder::showSinglePic(const char *filename)
 #if HAVE_HISILICON
 			if (m_video_clip_fd >= 0)
 				finishShowSinglePic();
-#endif			
+#endif
 			if (m_video_clip_fd == -1)
 				m_video_clip_fd = open("/dev/dvb/adapter0/video0", O_WRONLY);
 			if (m_video_clip_fd >= 0)
@@ -1266,9 +1259,9 @@ RESULT eTSMPEGDecoder::showSinglePic(const char *filename)
 #else
 				if (ioctl(m_video_clip_fd, VIDEO_SELECT_SOURCE, VIDEO_SOURCE_MEMORY) < 0)
 					eDebug("[eTSMPEGDecoder] VIDEO_SELECT_SOURCE MEMORY failed: %m");
-#endif					
+#endif
 				if (ioctl(m_video_clip_fd, VIDEO_SET_STREAMTYPE, streamtype) < 0)
-					eDebug("[eTSMPEGDecoder] VIDEO_SET_STREAMTYPE failed: %m");	
+					eDebug("[eTSMPEGDecoder] VIDEO_SET_STREAMTYPE failed: %m");
 				if (ioctl(m_video_clip_fd, VIDEO_PLAY) < 0)
 					eDebug("[eTSMPEGDecoder] VIDEO_PLAY failed: %m");
 				if (ioctl(m_video_clip_fd, VIDEO_CONTINUE) < 0)
@@ -1284,14 +1277,14 @@ RESULT eTSMPEGDecoder::showSinglePic(const char *filename)
 				writeAll(m_video_clip_fd, iframe, s.st_size);
 				if (!seq_end_avail)
 					write(m_video_clip_fd, seq_end, sizeof(seq_end));
- 				writeAll(m_video_clip_fd, stuffing, 8192);
+				writeAll(m_video_clip_fd, stuffing, 8192);
 #if HAVE_HISILICON
 				;
 #else
- 				m_showSinglePicTimer->start(150, true);
+				m_showSinglePicTimer->start(150, true);
 #endif
- 			}
- 			close(f);
+			}
+			close(f);
 		}
 		else
 		{

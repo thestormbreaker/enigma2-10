@@ -74,7 +74,6 @@ class Rc:
 				rc = self.rcs[2]
 			except:
 				rc = self.rcs[config.misc.rcused.value]
-
 		if rc.has_key(key):
 			rcpos = self["rc"].getPosition()
 			pos = rc[key]
@@ -85,7 +84,7 @@ class Rc:
 					selectPic = x
 					break
 			if selectPic is not None:
-				print "selectPic:", selectPic
+				print "[RC] selectPic:", selectPic
 				self[selectPic].moveTo(rcpos[0] + pos[0] + selectPics[1][0], rcpos[1] + pos[1] + selectPics[1][1], 1)
 				self[selectPic].startMoving()
 				self[selectPic].show()

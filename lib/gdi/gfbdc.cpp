@@ -176,7 +176,22 @@ void gFBDC::exec(const gOpcode *o)
 #endif
 #if defined(CONFIG_HISILICON_FB)
 		if(islocked()==0)
-		{
+#ifdef CONFIG_ION
+		if (surface_back.data_phys)
+ 		{
+			gUnmanagedSurface s(surface);
+			surface = surface_back;
+			surface_back = s;
+
+			fb->waitVSync();
+			if (surface.data_phys > surface_back.data_phys)
+			{
+				fb->setOffset(0);
+			}
+			else
+			{
+				fb->setOffset(surface_back.y);
+			}
 			bcm_accel_blit(
 				surface.data_phys, surface.x, surface.y, surface.stride, 0,
 				surface_back.data_phys, surface_back.x, surface_back.y, surface_back.stride,
@@ -292,6 +307,10 @@ void gFBDC::setResolution(int xres, int yres, int bpp)
 
 	eDebug("[gFBDC] resolution: %dx%dx%d stride=%d, %dkB available for acceleration surfaces.",
 		 surface.x, surface.y, surface.bpp, fb->Stride(), (fb->Available() - fb_size)/1024);
+
+#ifndef CONFIG_ION
+	/* accel is already set in fb.cpp */
+	eDebug("[gFBDC] %dkB available for acceleration surfaces.", (fb->Available() - fb_size)/1024);
 
 	if (gAccel::getInstance())
 		gAccel::getInstance()->setAccelMemorySpace(fb->lfb + fb_size, surface.data_phys + fb_size, fb->Available() - fb_size);

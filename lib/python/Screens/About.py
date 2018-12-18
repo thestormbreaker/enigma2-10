@@ -11,7 +11,7 @@ from Components.ScrollLabel import ScrollLabel
 from Components.Console import Console
 from Components.config import config
 from enigma import eTimer, getEnigmaVersionString, getDesktop
-from boxbranding import getMachineBrand, getMachineName, getImageVersion, getImageType, getImageBuild, getDriverDate, getImageDevBuild
+from boxbranding import getMachineBrand, getMachineBuild, getMachineName, getImageVersion, getImageType, getImageBuild, getDriverDate, getImageDevBuild
 from Components.Pixmap import MultiPixmap
 from Components.Network import iNetwork
 from Components.SystemInfo import SystemInfo
@@ -73,8 +73,10 @@ class About(Screen):
 		AboutText += _("Model:\t%s %s\n") % (getMachineBrand(), getMachineName())
 
 		if about.getChipSetString() != _("unavailable"):
-			if about.getIsBroadcom():
-				AboutText += _("Chipset:\tBCM%s\n") % about.getChipSetString().upper()
+			if SystemInfo["HasHiSi"]:
+				AboutText += _("Chipset:\tHiSilicon %s\n") % about.getChipSetString().upper()
+			elif about.getIsBroadcom():
+				AboutText += _("Chipset:\tBroadcom %s\n") % about.getChipSetString().upper()
 			else:
 				AboutText += _("Chipset:\t%s\n") % about.getChipSetString().upper()
 
@@ -85,11 +87,18 @@ class About(Screen):
 		AboutText += _("Image:\t%s.%s%s (%s)\n") % (getImageVersion(), getImageBuild(), imageSubBuild, getImageType().title())
 
 		if SystemInfo["canMultiBoot"]:
-			image = GetCurrentImage()
+			slot = image = GetCurrentImage()
+			part = "eMMC slot %s" %slot
 			bootmode = ""
 			if SystemInfo["canMode12"]:
 				bootmode = "bootmode = %s" %GetCurrentImageMode()
-			AboutText += _("Image Slot:\t%s") % "STARTUP_" + str(image) + " " + bootmode + "\n"
+			if SystemInfo["HasSDmmc"]:
+				slot += 1
+				if image != 0:
+					part = "SDC slot %s (%s%s) " %(image, SystemInfo["canMultiBoot"][2], image*2)
+				else:
+					part = "eMMC slot %s" %slot
+			AboutText += _("Image Slot:\t%s") % "STARTUP_" + str(slot) + "  " + part + " " + bootmode + "\n"
 
 		skinWidth = getDesktop(0).size().width()
 		skinHeight = getDesktop(0).size().height()
@@ -138,7 +147,12 @@ class About(Screen):
 				f.close()
 			except:
 				tempinfo = ""
-		if tempinfo and int(tempinfo.replace('\n', '')) > 0:
+		elif path.exists('/proc/hisi/msp/pm_cpu'):
+			try:
+				tempinfo = search('temperature = (\d+) degree', open("/proc/hisi/msp/pm_cpu").read()).group(1)
+			except:
+				tempinfo = ""
+		if tempinfo and int(tempinfo) > 0:
 			mark = str('\xc2\xb0')
 			AboutText += _("Processor temp:\t%s") % tempinfo.replace('\n', '').replace(' ','') + mark + "C\n"
 		AboutLcdText = AboutText.replace('\t', ' ')
@@ -173,7 +187,7 @@ class About(Screen):
 		if rootfs2 and kernel2:
 			return True
 		else:
-			return False		
+			return False
 
 	def showTranslationInfo(self):
 		self.session.open(TranslationInfo, self.menu_path)

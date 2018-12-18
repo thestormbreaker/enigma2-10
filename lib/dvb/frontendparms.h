@@ -59,7 +59,7 @@ public:
 		No_Stream_Id_Filter = NO_STREAM_ID_FILTER
 	};
 
-		enum {
+	enum {
 		PLS_Default_Gold_Code, PLS_Default_Root_Code
 	};
 

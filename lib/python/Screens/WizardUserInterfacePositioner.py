@@ -1,11 +1,9 @@
 from Screens.MessageBox import MessageBox
-from Screens.Screen import Screen
 from Screens.WizardLanguage import WizardLanguage
 from Screens.Rc import Rc
-from Components.Pixmap import Pixmap, MovingPixmap, MultiPixmap
+from Components.Pixmap import Pixmap
 from Components.Sources.Boolean import Boolean
 from Tools.Directories import resolveFilename, SCOPE_SKIN
-from Components.config import config, configfile
 from Components.Console import Console
 
 class UserInterfacePositionerWizard(WizardLanguage, Rc):
@@ -15,7 +13,6 @@ class UserInterfacePositionerWizard(WizardLanguage, Rc):
 		Rc.__init__(self)
 		self.skinName = "StartWizard"
 		self.session = session
-		Screen.setTitle(self, _("Welcome..."))
 		self.Console = Console()
 		self["wizard"] = Pixmap()
 		self["HelpWindow"] = Pixmap()

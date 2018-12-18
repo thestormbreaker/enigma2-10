@@ -1,6 +1,6 @@
 installdir = $(pkglibdir)/python/Plugins/SystemPlugins
 
-SUBDIRS = PositionerSetup Satfinder \
+SUBDIRS = PositionerSetup Satfinder AnimationSetup \
 	VideoTune Hotplug \
 	DefaultServicesScanner CommonInterfaceAssignment \
 	HdmiCEC VideoClippingSetup \
@@ -50,5 +50,6 @@ endif
 if DM900
 SUBDIRS += FSBLUpdater
 endif
++
 
 install_PYTHON = __init__.py

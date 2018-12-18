@@ -133,6 +133,8 @@ eHdmiCEC::eHdmiCEC()
 #define HDMIDEV "/dev/hdmi_cec"
         hdmiFd = ::open("/dev/hdmi_cec", O_RDWR | O_NONBLOCK | O_CLOEXEC);
 #endif
+
+		hdmiFd = ::open(HDMIDEV, O_RDWR | O_NONBLOCK | O_CLOEXEC);
 		if (hdmiFd >= 0)
 		{
 
@@ -149,6 +151,10 @@ eHdmiCEC::eHdmiCEC()
 	{
 		messageNotifier = eSocketNotifier::create(eApp, hdmiFd, eSocketNotifier::Read | eSocketNotifier::Priority);
 		CONNECT(messageNotifier->activated, eHdmiCEC::hdmiEvent);
+	}
+	else
+	{
+		eDebug("[eHdmiCEC] cannot open %s: %m", HDMIDEV);
 	}
 
 	getAddressInfo();
@@ -168,7 +174,6 @@ void eHdmiCEC::reportPhysicalAddress()
 {
 	struct cec_message txmessage;
 	memset(&txmessage, 0, sizeof(txmessage));
-
 	txmessage.address = 0x0f; /* broadcast */
 	txmessage.data[0] = 0x84; /* report address */
 	txmessage.data[1] = physicalAddress[0];

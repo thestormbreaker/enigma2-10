@@ -727,15 +727,15 @@ RESULT eDVBTSRecorder::start()
 		return -3;
 
 	char filename[128];
- 	snprintf(filename, 128, "/dev/dvb/adapter%d/demux%d", m_demux->adapter, m_demux->demux);
- 
+	snprintf(filename, 128, "/dev/dvb/adapter%d/demux%d", m_demux->adapter, m_demux->demux);
+
 #if HAVE_HISILICON
 	m_source_fd = ::open(filename, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
 #else
- 	m_source_fd = ::open(filename, O_RDONLY | O_CLOEXEC);
+	m_source_fd = ::open(filename, O_RDONLY | O_CLOEXEC);
 #endif
- 
- 	if (m_source_fd < 0)
+
+	if (m_source_fd < 0)
 	{
 		eDebug("[eDVBTSRecorder] FAILED to open demux %s: %m", filename);
 		return -3;

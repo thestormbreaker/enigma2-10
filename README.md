@@ -1,4 +1,4 @@
 enigma2
 =======
 
-OpenBH for dm8000 Enigma2 
+OpenViX Enigma2 

@@ -390,6 +390,7 @@ public:
 		sLiveStreamDemuxId,
 		sBuffer,
 		sIsDedicated3D,
+                sHideVBI,
 		sCenterDVBSubs,
 
 		sGamma,

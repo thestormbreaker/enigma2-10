@@ -568,7 +568,7 @@ void gPixmap::blit(const gPixmap &src, const eRect &_pos, const gRegion &clip, i
 					/* Hardware alpha blending is broken on the few
 					 * boxes that support it, so only use it
 					 * when scaling */
-					
+
 					accel = true;
 #else
 					if (flag & blitScale)

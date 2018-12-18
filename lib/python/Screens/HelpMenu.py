@@ -53,7 +53,7 @@ class HelpableScreen:
 			{
 				"displayHelp": self.showHelp,
 			})
-		self["key_help"] = StaticText(_("HELP"))		
+		self["key_help"] = StaticText(_("HELP"))
 
 	def showHelp(self):
 		try:

@@ -84,8 +84,8 @@ class InstallWizard(Screen, ConfigListScreen):
 				self.list.append(getConfigListEntry(_("Channel list type"), self.channellist_type))
 #		elif self.index == self.INSTALL_PLUGINS:
 #			self.list.append(getConfigListEntry(_("Do you want to install plugins"), self.enabled))
-#		elif self.index == self.INSTALL_SKINS:
-#			self.list.append(getConfigListEntry(_("Do you want to change the default skin"), self.enabled))
+		elif self.index == self.INSTALL_SKINS:
+			self.list.append(getConfigListEntry(_("Do you want to change the default skin"), self.enabled))
 		self["config"].list = self.list
 		self["config"].l.setList(self.list)
 
