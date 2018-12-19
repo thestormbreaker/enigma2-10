@@ -3,40 +3,13 @@ from Components.About import about
 from Tools.CList import CList
 from Tools.HardwareInfo import HardwareInfo
 from enigma import eAVSwitch, getDesktop
-from boxbranding import getMachineBuild, getBoxType, getBrandOEM, getDisplayType, getHaveRCA, getHaveDVI, getHaveYUV, getHaveSCART, getHaveAVJACK, getHaveSCARTYUV, getHaveHDMI, getMachineMtdRoot
+from boxbranding import getBoxType, getBrandOEM
 from SystemInfo import SystemInfo
 import os
 
 config.av = ConfigSubsection()
 
 class AVSwitch:
-
-	has_rca = getHaveRCA() in ('True',)
-	has_dvi = getHaveDVI() in ('True',)
-	has_jack = getHaveAVJACK() in ('True',)
-	has_scart = getHaveSCART() in ('True',)
-
-	print "SystemInfo", "MachineBuild", getMachineBuild()
-	print "SystemInfo", "BoxType", getBoxType()
-	print "SystemInfo", "BrandOEM", getBrandOEM()
-	print "SystemInfo", "DisplayType", getDisplayType()
-	print "SystemInfo", "HaveRCA", getHaveRCA()
-	print "SystemInfo", "getHaveDVI", getHaveDVI()
-	print "SystemInfo", "HaveYUV", getHaveYUV()
-	print "SystemInfo", "HaveSCART", getHaveSCART()
-	print "SystemInfo", "HaveAVJACK", getHaveAVJACK()
-	print "SystemInfo", "HaveSCARTYUV", getHaveSCARTYUV()
-	print "SystemInfo", "HaveHDMI", getHaveHDMI()
-	print "SystemInfo", "MachineMtdRoot", getMachineMtdRoot()
-	print "VideoWizard", "has_dvi", has_dvi
-	print "VideoWizard", "has_rca", has_rca
-	print "VideoWizard", "has_jack", has_jack
-	print "VideoWizard", "has_scart", has_scart
-	print "AVSwitch", "Scart-YPbPr", SystemInfo["Scart-YPbPr"]
-	print "AVSwitch", "no_YPbPr", SystemInfo["no_YPbPr"]
-	print "AVSwitch", "yellow_RCA_no_scart", SystemInfo["yellow_RCA_no_scart"]
-	print "AVSwitch", "no_yellow_RCA__no_scart", SystemInfo["no_yellow_RCA__no_scart"]
-
 	rates = { } # high-level, use selectable modes.
 	modes = { }  # a list of (high-level) modes for a certain port.
 
@@ -72,8 +45,6 @@ class AVSwitch:
 					   "60Hz":  { 60: "2160p" },
 					   "multi": { 50: "2160p50", 60: "2160p" } }
 
-	rates["2160p30"] = { "multi": { 50: "2160p25", 60: "2160p30" } }
-
 	rates["PC"] = {
 		"1024x768": { 60: "1024x768" }, # not possible on DM7025
 		"800x600" : { 60: "800x600" },  # also not possible
@@ -93,26 +64,153 @@ class AVSwitch:
 	modes["Scart"] = ["PAL", "NTSC", "Multi"]
 	# modes["DVI-PC"] = ["PC"]
 
-	modes["HDMI"] = SystemInfo["VideoModes"][0] 
-	widescreen_modes = SystemInfo["VideoModes"][1]
+	if about.getChipSetString() in ('5272s', '7251', '7251s', '7252', '7252s', '7366', '7376', '7444s', '72604'):
+		modes["HDMI"] = ["720p", "1080p", "2160p", "1080i", "576p", "576i", "480p", "480i"]
+		widescreen_modes = {"720p", "1080p", "2160p", "1080i"}
+	elif about.getChipSetString() in ('7241', '7356', '73565', '7358', '7362', '73625', '7424', '7435', '7425', '7552'):
+		modes["HDMI"] = ["720p", "1080p", "1080i", "576p", "576i", "480p", "480i"]
+		widescreen_modes = {"720p", "1080p", "1080i"}
+	else:
+		modes["HDMI"] = ["720p", "1080i", "576p", "576i", "480p", "480i"]
+		widescreen_modes = {"720p", "1080i"}
 
 	modes["YPbPr"] = modes["HDMI"]
 
-	if SystemInfo["Scart-YPbPr"]:
+	if getBrandOEM() == 'vuplus' and getBoxType() not in ('vusolo4k', 'vuuno4k', 'vuuno4kse',  'vuzero4k', 'vuultimo4k'):
 		modes["Scart-YPbPr"] = modes["HDMI"]
 
 	# if "DVI-PC" in modes and not getModeList("DVI-PC"):
 	# 	print "[VideoHardware] remove DVI-PC because of not existing modes"
 	# 	del modes["DVI-PC"]
 
-	if "YPbPr" in modes and SystemInfo["no_YPbPr"]:
+	# Machines that do not have component video (red, green and blue RCA sockets).
+	no_YPbPr = (
+		'dm500hd',
+		'dm500hdv2',
+		'dm800',
+		'dm520',
+		'dm525',
+		'dm7080',
+		'dm820',
+		'dm900',
+		'e3hd',
+		'ebox7358',
+		'eboxlumi',
+		'ebox5100',
+		'enfinity',
+		'et4x00',
+		'formuler4turbo',
+		'gbquad4k',
+		'gbue4k',
+		'gbx1',
+		'gbx2',		
+		'gbx3',
+		'gbx3h',
+		'iqonios300hd',
+		'ixusszero',
+		'mbmicro',
+		'mbmicrov2',
+		'mbtwinplus',
+		'mutant11',
+		'mutant51',
+		'mutant500c',
+		'mutant1200',
+		'mutant1500',
+		'odimm7',
+		'optimussos1',
+		'osmega',
+		'osmini',
+		'osminiplus',
+		'osnino',
+		'osninoplus',		
+		'sf128',
+		'sf138',
+		'sf4008',
+		'tm2t',
+		'tmnano',
+		'tmnano2super',
+		'tmnano3t',
+		'tmnanose',
+		'tmnanosecombo',
+		'tmnanoseplus',
+		'tmnanosem2',
+		'tmnanosem2plus',
+		'tmnanom3',
+		'tmsingle',
+		'tmtwin4k',
+		'uniboxhd1',
+		'vusolo2',
+		'vuzero4k',
+		'vusolo4k',
+		'vuuno4k',
+		'vuuno4kse',
+		'vuultimo4k',
+		'xp1000'
+	)
+
+	# Machines that have composite video (yellow RCA socket) but do not have Scart.
+	yellow_RCA_no_scart = (
+		'formuler1',
+		'formuler1tc',
+		'formuler4turbo',
+		'gb800ueplus',
+		'gbultraue',
+		'mbmicro',
+		'mbmicrov2',
+		'mbtwinplus',
+		'mutant11',
+		'mutant500c',
+		'osmega',
+		'osmini',
+		'osminiplus',
+		'sf138',
+		'tmnano',
+		'tmnanose',
+		'tmnanosecombo',
+		'tmnanosem2',
+		'tmnanoseplus',
+		'tmnanosem2plus',
+		'tmnano2super',
+		'tmnano3t',
+		'xpeedlx3'
+	)
+
+	# Machines that have neither yellow RCA nor Scart sockets
+	no_yellow_RCA__no_scart = (
+		'dm900',
+		'et5x00',
+		'et6x00',
+		'gbquad',
+		'gbquad4k',
+		'gbue4k',
+		'gbx1',
+		'gbx2',		
+		'gbx3',
+		'gbx3h',
+		'ixussone',
+		'mutant51',
+		'mutant1500',
+		'osnino',
+		'osninoplus',		
+		'sf4008',
+		'tmnano2t',
+		'tmnanom3',
+		'tmtwin4k',
+		'vuzero4k',
+		'vusolo4k',
+		'vuuno4k',
+		'vuuno4kse',
+		'vuultimo4k'
+	)
+
+	if "YPbPr" in modes and getBoxType() in no_YPbPr:
 		del modes["YPbPr"]
 
-	if "Scart" in modes and SystemInfo["yellow_RCA_no_scart"]:
+	if "Scart" in modes and getBoxType() in yellow_RCA_no_scart:
 		modes["RCA"] = modes["Scart"]
 		del modes["Scart"]
 
-	if "Scart" in modes and SystemInfo["no_yellow_RCA__no_scart"]:
+	if "Scart" in modes and getBoxType() in no_yellow_RCA__no_scart:
 		del modes["Scart"]
 
 	def __init__(self):
@@ -178,11 +276,11 @@ class AVSwitch:
 		if mode_60 is None or force == 50:
 			mode_60 = mode_50
 
-		if os.path.exists('/proc/stb/video/videomode_50hz') and getBoxType() not in (''):
+		if os.path.exists('/proc/stb/video/videomode_50hz') and getBoxType() not in ('gbquadplus', 'gb800solo', 'gb800se', 'gb800ue', 'gb800ueplus'):
 			f = open("/proc/stb/video/videomode_50hz", "w")
 			f.write(mode_50)
 			f.close()
-		if os.path.exists('/proc/stb/video/videomode_60hz') and getBoxType() not in (''):
+		if os.path.exists('/proc/stb/video/videomode_60hz') and getBoxType() not in ('gbquadplus', 'gb800solo', 'gb800se', 'gb800ue', 'gb800ueplus'):
 			f = open("/proc/stb/video/videomode_60hz", "w")
 			f.write(mode_60)
 			f.close()
@@ -296,10 +394,11 @@ class AVSwitch:
 			wss = "auto(4:3_off)"
 		else:
 			wss = "auto"
-		print "[VideoHardware] setting wss: %s" % wss
-		f = open("/proc/stb/denc/0/wss", "w")
-		f.write(wss)
-		f.close()
+		if os.path.exists("/proc/stb/denc/0/wss"):
+			print "[VideoHardware] setting wss: %s" % wss
+			f = open("/proc/stb/denc/0/wss", "w")
+			f.write(wss)
+			f.close()
 
 	def setPolicy43(self, cfgelement):
 		print "[VideoHardware] setting policy: %s" % cfgelement.value
@@ -489,13 +588,28 @@ def InitAVSwitch():
 				f.close()
 			except:
 				pass
-		if getBrandOEM() == "vuplus" and "4k" in getBoxType():
+		if getBoxType() in ('vuzero4k','vusolo4k','vuuno4k','vuuno4kse','vuultimo4k'):
 			config.av.hdmicolorspace = ConfigSelection(choices={
 					"Edid(Auto)": _("Auto"),
 					"Hdmi_Rgb": _("RGB"),
 					"444": _("YCbCr444"),
 					"422": _("YCbCr422"),
 					"420": _("YCbCr420")},
+					default = "Edid(Auto)")
+		elif getBoxType() in ('dm900'):
+			config.av.hdmicolorspace = ConfigSelection(choices={
+					"Edid(Auto)": _("Auto"),
+					"Hdmi_Rgb": _("RGB"),
+					"Itu_R_BT_709": _("BT709"),
+					"DVI_Full_Range_RGB": _("Full Range RGB"),
+					"FCC": _("FCC 1953"),
+					"Itu_R_BT_470_2_BG": _("BT470 BG"),
+					"Smpte_170M": _("Smpte 170M"),
+					"Smpte_240M": _("Smpte 240M"),
+					"Itu_R_BT_2020_NCL": _("BT2020 NCL"),
+					"Itu_R_BT_2020_CL": _("BT2020 CL"),
+					"XvYCC_709": _("BT709 XvYCC"),
+					"XvYCC_601": _("BT601 XvYCC")},
 					default = "Edid(Auto)")
 		else:
 			config.av.hdmicolorspace = ConfigSelection(choices={
@@ -627,12 +741,48 @@ def InitAVSwitch():
 					config.av.pcm_multichannel.setValue(False)
 		config.av.downmix_ac3 = ConfigYesNo(default = True)
 		config.av.downmix_ac3.addNotifier(setAC3Downmix)
+	
+	if os.path.exists("/proc/stb/audio/ac3plus_choices"):
+		f = open("/proc/stb/audio/ac3plus_choices", "r")
+		can_ac3plustranscode = f.read().strip().split(" ")
+		f.close()
+	else:
+		can_ac3plustranscode = False
+
+	SystemInfo["CanAC3plusTranscode"] = can_ac3plustranscode
+
+	if can_ac3plustranscode:
+		def setAC3plusTranscode(configElement):
+			f = open("/proc/stb/audio/ac3plus", "w")
+			f.write(configElement.value)
+			f.close()
+		choice_list = [("use_hdmi_caps", _("Controlled by HDMI")), ("force_ac3", _("Always"))]
+		config.av.transcodeac3plus = ConfigSelection(choices = choice_list, default = "use_hdmi_caps")
+		config.av.transcodeac3plus.addNotifier(setAC3plusTranscode)
 
 	if SystemInfo["CanDownmixDTS"]:
 		def setDTSDownmix(configElement):
 			open("/proc/stb/audio/dts", "w").write(configElement.value and "downmix" or "passthrough")
 		config.av.downmix_dts = ConfigYesNo(default = True)
 		config.av.downmix_dts.addNotifier(setDTSDownmix)
+	
+	if os.path.exists("/proc/stb/audio/dtshd_choices"):
+		f = open("/proc/stb/audio/dtshd_choices", "r")
+		can_dtshdtranscode = f.read().strip().split(" ")
+		f.close()
+	else:
+		can_dtshdtranscode = False
+
+	SystemInfo["CanDTSHDTranscode"] = can_dtshdtranscode
+
+	if can_dtshdtranscode:
+		def setDTSHDTranscode(configElement):
+			f = open("/proc/stb/audio/dtshd", "w")
+			f.write(configElement.value)
+			f.close()
+		choice_list = [("use_hdmi_caps", _("Controlled by HDMI")), ("force_dts", _("Always"))]
+		config.av.transcodedtshd = ConfigSelection(choices = choice_list, default = "use_hdmi_caps")
+		config.av.transcodedtshd.addNotifier(setDTSHDTranscode)
 
 	if SystemInfo["CanDownmixAAC"]:
 		def setAACDownmix(configElement):
@@ -649,7 +799,7 @@ def InitAVSwitch():
 	else:
 		config.av.transcodeaac = ConfigNothing()
 
-	if SystemInfo["HasScaler_sharpness"]:
+	if os.path.exists("/proc/stb/vmpeg/0/pep_scaler_sharpness"):
 		def setScaler_sharpness(config):
 			myval = int(config.value)
 			try:
